@@ -75,16 +75,6 @@ func DownloadContractsEVM(server string, start int64, end int64, balance float64
 
 	log.Info().Msg("Current block : " + strconv.FormatUint(currentBlock, 10))
 
-	blockNumber := big.NewInt(int64(currentBlock))
-	blockData, err := client.BlockByNumber(context.Background(), blockNumber)
-
-	if err != nil {
-		log.Fatal().Msg("Can not get transactions on the current block")
-
-	}
-
-	log.Info().Msg("Total number of transactions on the current block : " + strconv.Itoa(len(blockData.Transactions())))
-
 	wg := sync.WaitGroup{}
 
 	maxGoRoutines := make(chan struct{}, concurrency)
