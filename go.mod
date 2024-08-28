@@ -17,8 +17,6 @@ require (
 	golang.org/x/text v0.14.0 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => github.com/jf-li00/go-ethereum v1.9.0
-
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect

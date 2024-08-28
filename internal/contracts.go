@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/ethereum/go-ethereum/params"
@@ -150,7 +151,7 @@ func DownloadContractsEVM(server string, start int64, end int64, balance float64
 							log.Err(err).Msg("can not get bytecode")
 						}
 
-						codeHash, err := client.CodeHashAt(context.Background(), transaction.ContractAddress, nil)
+						codeHash := crypto.Keccak256(bytecode)
 						if err != nil {
 							log.Err(err).Msg("can not get code hash")
 						}
