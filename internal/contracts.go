@@ -3,7 +3,6 @@ package internal
 import (
 	"context"
 	"encoding/hex"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"strconv"
@@ -32,7 +31,7 @@ func DisasmContractsEVM(outDir string, userEvmPath string) {
 
 	evmPath := userEvmPath
 
-	files, err := ioutil.ReadDir(outDir)
+	files, err := os.ReadDir(outDir)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Can not open dir")
 	}
