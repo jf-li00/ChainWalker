@@ -2,3 +2,4 @@
 ./main
 dist/
 .vscode/
+config.toml

@@ -24,8 +24,12 @@ func main() {
 	printPtr := flag.Bool("p", false, "print on console only and do not download or disassemble contracts")
 
 	flag.Parse()
+	f, err := os.OpenFile("testlogfile", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatal().Msgf("error opening file: %v", err)
+	}
 
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Logger = zerolog.New(f).With().Timestamp().Logger()
 
 	banner := `ChainWalker 1.0.3-alpha - Usage`
 
@@ -53,5 +57,7 @@ func main() {
 		// step III : disassemble EVM to opcode
 		internal.DisasmContractsEVM(*outPtr, *evmPath)
 	}
+
+	defer f.Close()
 
 }

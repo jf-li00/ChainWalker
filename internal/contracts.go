@@ -9,11 +9,23 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
+
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/rs/zerolog/log"
 )
+
+type ContractDeployRecord struct {
+	ContractAddress string
+	Deployer        *string
+	Bytecode        string
+	Codehash        string
+	CreationTime    time.Time
+	TxHash          string
+	BlockNum        int64
+}
 
 func DisasmContractsEVM(outDir string, userEvmPath string) {
 
@@ -73,13 +85,31 @@ func DownloadContractsEVM(server string, start int64, end int64, balance float64
 
 	}
 
+	if uint64(end) > currentBlock {
+		end = int64(currentBlock)
+	}
+
 	log.Info().Msg("Current block : " + strconv.FormatUint(currentBlock, 10))
+	pgPool, err := Connect()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Can not connect to the database")
+	}
+	last_block_number, err := LastBlockNumber(pgPool)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Can not get the last block number")
+	} else {
+		start = last_block_number
+	}
 
 	wg := sync.WaitGroup{}
 
 	maxGoRoutines := make(chan struct{}, concurrency)
 
 	for i := start; i < end; i++ {
+		if i%100000 == 0 {
+			log.Info().Msg("Current block : " + strconv.FormatInt(i, 10))
+			QueryCurrentStatistics(pgPool)
+		}
 
 		wg.Add(1)
 
@@ -104,6 +134,8 @@ func DownloadContractsEVM(server string, start int64, end int64, balance float64
 
 					// to is null, so we assume we got contract creation transaction
 					if tx.To() == nil {
+						txhash := tx.Hash()
+						ts := tx.Time()
 
 						transaction, err := client.TransactionReceipt(context.Background(), tx.Hash())
 
@@ -117,6 +149,22 @@ func DownloadContractsEVM(server string, start int64, end int64, balance float64
 						if err != nil {
 							log.Err(err).Msg("can not get bytecode")
 						}
+
+						codeHash, err := client.CodeHashAt(context.Background(), transaction.ContractAddress, nil)
+						if err != nil {
+							log.Err(err).Msg("can not get code hash")
+						}
+						log.Info().Msg("Code hash : " + hex.EncodeToString(codeHash))
+						contractDeployRecord := ContractDeployRecord{
+							ContractAddress: transaction.ContractAddress.String(),
+							Deployer:        nil,
+							Bytecode:        hex.EncodeToString(bytecode),
+							Codehash:        hex.EncodeToString(codeHash),
+							CreationTime:    ts,
+							TxHash:          txhash.String(),
+							BlockNum:        i,
+						}
+						InsertOneContract(pgPool, contractDeployRecord)
 
 						// at the moment balance of the contract itself
 						accountBalance, err := client.BalanceAt(context.Background(), transaction.ContractAddress, nil)
@@ -170,6 +218,7 @@ func DownloadContractsEVM(server string, start int64, end int64, balance float64
 	}
 
 	wg.Wait()
+	pgPool.Close()
 
 }
 
